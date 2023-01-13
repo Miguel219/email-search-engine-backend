@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 )
@@ -17,7 +18,7 @@ const numCPU = 12
 const user = "admin"
 const password = "Complexpass#123"
 
-const host = "http://localhost:4080"
+const host = "http://192.168.5.52:4080"
 const index = "emails"
 const _type = "_bulk"
 
@@ -52,7 +53,7 @@ func readDataFromFile(directory string) (data string) {
 	fileScanner.Split(bufio.ScanLines)
 
 	var notBody = true
-	data += "{ "
+	data = "{ "
 	var body = "\"Body\": \""
 	for fileScanner.Scan() {
 		if notBody {
@@ -80,8 +81,8 @@ func readFiles(directories []string, c chan []string) {
 	data := ""
 	for _, dir := range directories {
 		data += "{ \"index\" : { \"_index\" : \"" + index + "\" } }\n" + readDataFromFile(dir)
-		//Si la data ya es mayor que 80mb separarla (Dado que el API acepta request de max. 100mb)
-		if len(data)*4 > 80000000 {
+		//Si la data ya es mayor que 50mb, separarla (Dado que el API acepta request de max. 100mb)
+		if len(data)*4 > 50000000 {
 			res = append(res, data)
 			data = ""
 		}
@@ -159,15 +160,8 @@ func createData(directory string) {
 	}
 }
 
-func main() {
-
-	//Si no se ha generado ningún archivo
-	if isEmpty, _ := IsDirEmpty(outputDirectory); isEmpty {
-		//Se genera la data
-		createData(directory)
-	}
-
-	//Se lee cada archivo creado
+// Se lee cada archivo creado y cada correo se indexa en ZincSearch
+func saveData() {
 	files, err := ioutil.ReadDir(outputDirectory)
 	if err != nil {
 		log.Fatal(err)
@@ -197,4 +191,23 @@ func main() {
 		}
 		fmt.Println(string(body))
 	}
+}
+
+func main() {
+	//Profiling
+	f, err := os.Create("cpu.pprof")
+	if err != nil {
+		log.Fatal(err)
+	}
+	pprof.StartCPUProfile(f)
+	defer pprof.StopCPUProfile()
+
+	//Si no se ha generado ningún archivo
+	if isEmpty, _ := IsDirEmpty(outputDirectory); isEmpty {
+		//Se genera la data
+		createData(directory)
+	}
+
+	//Se guarda la data en ZincSearch
+	saveData()
 }
