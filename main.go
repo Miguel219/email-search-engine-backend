@@ -99,6 +99,8 @@ func readFiles(directories []string, c chan []string) {
 // Crea archivos con la información de los correos electrónicos y el formato adecuado para enviarlos al API
 func createData(directory string) {
 	var directories []string
+
+	//Se leen los directorios de los usuarios
 	users, err := ioutil.ReadDir(directory)
 	if err != nil {
 		log.Fatal(err)
@@ -106,6 +108,7 @@ func createData(directory string) {
 
 	for _, user := range users {
 		var userDirectory = directory + "/" + user.Name()
+		//Se leen los tipos de emails de cada usuario
 		emailTypes, err := ioutil.ReadDir(userDirectory)
 		if err != nil {
 			log.Fatal(err)
@@ -113,36 +116,36 @@ func createData(directory string) {
 		for _, emailType := range emailTypes {
 			if emailType.IsDir() {
 				var emailTypeDirectory = userDirectory + "/" + emailType.Name()
+				//Se leen los emails de cada tipo de email
 				emails, err := ioutil.ReadDir(emailTypeDirectory)
 				if err != nil {
 					log.Fatal(err)
 				}
 				for _, email := range emails {
 					var emailDirectory = emailTypeDirectory + "/" + email.Name()
+					//Se agrega el directorio de cada email al arreglo directories
 					directories = append(directories, emailDirectory)
 				}
 			} else {
 				var emailDirectory = userDirectory + "/" + emailType.Name()
+				//Se agrega el directorio de cada email que no pertenece a ningun tipo
 				directories = append(directories, emailDirectory)
 			}
 		}
 	}
-	fmt.Println(len(directories))
 
+	//Se divide el array de todos los directorios en chunks según la cantidad de CPUs
 	var dividedDirectories [][]string
-
 	chunkSize := (len(directories) + numCPU - 1) / numCPU
-
 	for i := 0; i < len(directories); i += chunkSize {
 		end := i + chunkSize
-
 		if end > len(directories) {
 			end = len(directories)
 		}
-
 		dividedDirectories = append(dividedDirectories, directories[i:end])
 	}
 
+	//Se crean los canales para cada goroutine
 	c := make(chan []string)
 	for i := 0; i < numCPU; i++ {
 		go readFiles(dividedDirectories[i], c)
