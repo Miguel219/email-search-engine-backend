@@ -11,6 +11,8 @@ import (
 	"runtime/pprof"
 	"strconv"
 	"strings"
+
+	"github.com/iancoleman/strcase"
 )
 
 const numCPU = 12
@@ -54,12 +56,13 @@ func readDataFromFile(directory string) (data string) {
 
 	var notBody = true
 	data = "{ "
-	var body = "\"Body\": \""
+	var body = "\"body\": \""
 	for fileScanner.Scan() {
 		if notBody {
 			if strings.Contains(fileScanner.Text(), ": ") {
 				var textArray = strings.Split(fileScanner.Text(), ": ")
-				data += "\"" + textArray[0] + "\": \"" + formatString(textArray[1]) + "\", "
+				var key = strcase.ToLowerCamel(textArray[0])
+				data += "\"" + key + "\": \"" + formatString(textArray[1]) + "\", "
 				if strings.Contains(fileScanner.Text(), "X-FileName") {
 					notBody = false
 				}
