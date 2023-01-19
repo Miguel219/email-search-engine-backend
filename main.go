@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime/pprof"
 	"strconv"
 	"strings"
@@ -84,8 +85,8 @@ func readFiles(directories []string, c chan []string) {
 	data := ""
 	for _, dir := range directories {
 		data += "{ \"index\" : { \"_index\" : \"" + index + "\" } }\n" + readDataFromFile(dir)
-		//Si la data ya es mayor que 50mb, separarla (Dado que el API acepta request de max. 100mb)
-		if len(data)*4 > 50000000 {
+		//Si la data ya es mayor que 90mb, separarla (Dado que el API acepta request de max. 100mb)
+		if len(data)*4 > 90000000 {
 			res = append(res, data)
 			data = ""
 		}
@@ -100,39 +101,21 @@ func readFiles(directories []string, c chan []string) {
 func createData(directory string) {
 	var directories []string
 
-	//Se leen los directorios de los usuarios
-	users, err := ioutil.ReadDir(directory)
+	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() {
+			//Se agrega el directorio el path de cada email
+			directories = append(directories, path)
+		}
+		return nil
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	for _, user := range users {
-		var userDirectory = directory + "/" + user.Name()
-		//Se leen los tipos de emails de cada usuario
-		emailTypes, err := ioutil.ReadDir(userDirectory)
-		if err != nil {
-			log.Fatal(err)
-		}
-		for _, emailType := range emailTypes {
-			if emailType.IsDir() {
-				var emailTypeDirectory = userDirectory + "/" + emailType.Name()
-				//Se leen los emails de cada tipo de email
-				emails, err := ioutil.ReadDir(emailTypeDirectory)
-				if err != nil {
-					log.Fatal(err)
-				}
-				for _, email := range emails {
-					var emailDirectory = emailTypeDirectory + "/" + email.Name()
-					//Se agrega el directorio de cada email al arreglo directories
-					directories = append(directories, emailDirectory)
-				}
-			} else {
-				var emailDirectory = userDirectory + "/" + emailType.Name()
-				//Se agrega el directorio de cada email que no pertenece a ningun tipo
-				directories = append(directories, emailDirectory)
-			}
-		}
-	}
+	fmt.Println("Total de emails:", len(directories))
 
 	//Se divide el array de todos los directorios en chunks según la cantidad de CPUs
 	var dividedDirectories [][]string
