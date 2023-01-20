@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -16,7 +16,7 @@ import (
 	"github.com/iancoleman/strcase"
 )
 
-const numCPU = 12
+const numCPU = 4
 
 const user = "admin"
 const password = "Complexpass#123"
@@ -28,10 +28,22 @@ const _type = "_bulk"
 const directory = "./enron_mail_20110402/maildir"
 const outputDirectory = "./emails"
 
+var keys = [...][]byte{
+	[]byte("Message-ID"),
+	[]byte("Subject"),
+	[]byte("X-From"),
+	[]byte("From"),
+	[]byte("To"),
+	[]byte("Date"),
+}
+
+const bodySeparator = "\n\n"
+
 // Formatea un string para guardarlo en archivos ndjson
 func formatString(str string) (res string) {
 	res = strings.Replace(str, "\\", "\\\\", -1)
 	res = strings.Replace(res, "\"", "\\\"", -1)
+	res = strings.Replace(res, "\n", "\\n", -1)
 	return
 }
 
@@ -46,35 +58,49 @@ func IsDirEmpty(directory string) (bool, error) {
 
 // Lee la información de un archivo y separa en partes el email
 func readDataFromFile(directory string) (data string) {
-	readFile, err := os.Open(directory)
 
+	// V2 - No se guarda toda la información, solo:
+	// {
+	// 	messageID
+	// 	subject
+	// 	xFrom
+	// 	from
+	// 	to
+	// 	date
+	// 	body
+	// }
+	// Se utiliza "ioutil.ReadFile" en lugar de "os.Open"
+	file, err := ioutil.ReadFile(directory)
 	if err != nil {
 		fmt.Println(err)
 	}
-	fileScanner := bufio.NewScanner(readFile)
-
-	fileScanner.Split(bufio.ScanLines)
-
-	var notBody = true
+	headerFile, bodyFile, _ := bytes.Cut(file, []byte(bodySeparator))
 	data = "{ "
-	var body = "\"body\": \""
-	for fileScanner.Scan() {
-		if notBody {
-			if strings.Contains(fileScanner.Text(), ": ") {
-				var textArray = strings.Split(fileScanner.Text(), ": ")
-				var key = strcase.ToLowerCamel(textArray[0])
-				data += "\"" + key + "\": \"" + formatString(textArray[1]) + "\", "
-				if strings.Contains(fileScanner.Text(), "X-FileName") {
-					notBody = false
+
+	lenHeaderFile := len(headerFile)
+	for _, key := range keys {
+		i := bytes.Index(headerFile, key)
+		if i != -1 {
+			var x int = i + len(key) + 2
+			var y int
+			for y = x; y < lenHeaderFile; y++ {
+				if headerFile[y] == byte('\n') {
+					y--
+					break
 				}
 			}
-		} else {
-			body += formatString(fileScanner.Text()) + "\\n"
+
+			var value string = ""
+			if y > x {
+				value = string(headerFile[x:y])
+			}
+			data += "\"" + strcase.ToLowerCamel(string(key)) +
+				"\": \"" + formatString(value) +
+				"\", "
 		}
 	}
-	data += body + "\" }\n"
 
-	readFile.Close()
+	data += "\"body\": \"" + formatString(string(bodyFile)) + "\" }\n"
 
 	return
 }
