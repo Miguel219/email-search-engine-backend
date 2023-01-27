@@ -21,7 +21,7 @@ const numCPU = 4
 const user = "admin"
 const password = "Complexpass#123"
 
-const host = "http://192.168.5.52:4080"
+const host = "http://172.21.32.1:4080"
 const index = "emails"
 const _type = "_bulk"
 

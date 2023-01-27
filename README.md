@@ -5,11 +5,13 @@ Este es un proyecto para busqueda rápida de correos electrónicos.
 Utiliza Vue.js para el frontend y Go y ZincSearch para el backend.
 
 Para correr el proyecto:
+
 ```
-go main.go
+go run main.go
 ```
 
 Para correr Zincsearch:
+
 ```
 set ZINC_FIRST_ADMIN_USER=admin
 set ZINC_FIRST_ADMIN_PASSWORD=Complexpass#123
