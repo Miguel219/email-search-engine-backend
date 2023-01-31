@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	handlers "email-search-engine-backend/internal/server/handlers"
@@ -18,6 +19,7 @@ func CreateServer() {
 
 	configEndpoints(router)
 
+	fmt.Println("The server is running")
 	http.ListenAndServe(":8000", router)
 }
 

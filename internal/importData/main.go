@@ -20,8 +20,8 @@ const numCPU = 4
 
 const index = "emails"
 
-const directory = "../../enron_mail_20110402/maildir"
-const outputDirectory = "../../emails"
+const directory = "./enron_mail_20110402/maildir"
+const outputDirectory = "./emails"
 
 var keys = [...][]byte{
 	[]byte("Message-ID"),
@@ -136,7 +136,7 @@ func createData(directory string) {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Total de emails:", len(directories))
+	fmt.Println("Total emails:", len(directories))
 
 	//Se divide el array de todos los directorios en chunks según la cantidad de CPUs
 	var dividedDirectories [][]string

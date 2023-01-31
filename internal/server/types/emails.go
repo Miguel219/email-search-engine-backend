@@ -1,6 +1,7 @@
 package server
 
 type Email struct {
+	Id        string `json:"id"`
 	MessageID string `json:"messageID"`
 	Subject   string `json:"subject"`
 	XFrom     string `json:"xFrom"`

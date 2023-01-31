@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	services "email-search-engine-backend/internal/server/services"
@@ -50,13 +49,8 @@ func zincSearchResponseToEmailsResponse(response *types.ZincSearchResponse) *typ
 	for _, hit := range response.Hits.Hits {
 		var email types.Email
 		emailBytes, _ := json.Marshal(hit.Source)
-
-		err := json.Unmarshal(emailBytes, &email)
-		if err != nil {
-			log.Println("Error in mapZincSearchResponseToEmails: ", err)
-			continue
-		}
-
+		json.Unmarshal(emailBytes, &email)
+		email.Id = hit.ID
 		emails = append(emails, email)
 	}
 
